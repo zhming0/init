@@ -20,7 +20,9 @@
    (stop-system system graph selectors nil))
   ([system graph selectors exception]
    (reduce (fn [ex [k c]]
-             (stop-component c (system k) ex))
+             (if (contains? system k)
+               (stop-component c (system k) ex)
+               ex))
            exception
            (graph/reverse-dependency-order graph selectors))))
 

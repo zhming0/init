@@ -64,3 +64,19 @@
       (is (= ::d (-> ex ex-data :component :name)))
       (is (= ::d (-> ex ex-cause ex-data :name)))
       (is (= [::c ::b ::a] (mapv #(-> % ex-cause ex-data :name) (.getSuppressed ex)))))))
+
+(deftest partial-system-test
+  (testing "start/stop partially started system"
+    (let [stopped (atom [])
+          stop-fn (partial swap! stopped conj)
+          add     (fn [c [n d]]
+                    (config/add-component c {:name n
+                                             :deps d
+                                             :start-fn (constantly n)
+                                             :stop-fn stop-fn}))
+          config  (reduce add {} [[::a] [::b [::a]] [::c [::b]] [::d [::c ::a]]])
+          system  (-> config graph/dependency-graph (system/start [::b]))
+          result  (system/stop system (keys system))]
+      (is (= [::a ::b] (keys system)))
+      (is (nil? result))
+      (is (= [::b ::a] @stopped)))))
